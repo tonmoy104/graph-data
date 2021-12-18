@@ -1,6 +1,9 @@
 import { IGraphData } from './../interface/IGraphData';
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import * as d3 from 'd3';
+import { BehaviorSubject, of, combineLatest, merge, zip } from 'rxjs';
+import { FormControl } from '@angular/forms';
+
 
 @Component({
   selector: 'app-horizontal-bar-chart',
@@ -9,37 +12,57 @@ import * as d3 from 'd3';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HorizontalBarChartComponent implements OnInit {
+  public maxValue: number;
+  public minValue: number;
+  public years$: BehaviorSubject<number[]> = new BehaviorSubject([]);
+  public yearControl: FormControl;
+  private readonly rowData: IGraphData[] = [];
+
   public ngOnInit(): void {
+    this.readFromCSVData();
+  }
+
+  public changeYear(): void{
+    const filteredRows = this.rowData.filter( x => x.year === this.yearControl.value);
+    this.BarChart(this.getFormattedData(filteredRows), 'renewables', 'state');
+  }
+
+  private readFromCSVData(): void {
     d3.csv('../../assets/interactive_data.csv').then((data) => {
-      const csvData: IGraphData[] = [];
       data.forEach((x): number =>
-        csvData.push({
-          year: new Date(x.date).getFullYear().toString(),
+        this.rowData.push({
+          year: new Date(x.date).getFullYear(),
           state: x.state,
           renewables: parseFloat(x.renewables),
         })
       );
-
-      this.BarChart(this.getFormattedData(csvData), 'renewables', 'year');
+      const years = [...new Set(this.rowData.map(item => item.year))];
+      this.years$.next(years);
+      this.maxValue = Math.max(...years);
+      this.minValue = Math.max(...years);
+      this.yearControl = new FormControl(this.maxValue);
+      this.changeYear();
     });
+
   }
 
   private getFormattedData(data: IGraphData[]): IGraphData[]{
     const formattedResult = [];
     data.reduce((res, value) => {
-        if (!res[value.year]) {
-          res[value.year] = {
+        if (!res[value.state]) {
+          res[value.state] = {
             renewables: 0,
-            year: value.year,
+            state: value.state,
           };
-          formattedResult.push(res[value.year]);
+          formattedResult.push(res[value.state]);
         }
-        res[value.year].renewables += value.renewables;
+        res[value.state].renewables += value.renewables;
         return res;
       }, {});
     return formattedResult;
 
   }
+
 
   private BarChart(data: IGraphData[], XProp: string, YProp: string): SVGSVGElement {
     const X = d3.map(data, (d) => d[XProp]);
@@ -94,6 +117,7 @@ export class HorizontalBarChartComponent implements OnInit {
       const formatValue = xScale.tickFormat(100, xFormat);
       title = (i) => `${formatValue(X[i])}`;
     }
+    d3.select('figure#bar').select('svg').remove();
     const svg = d3
       .select('figure#bar')
       .append('svg')

@@ -1,3 +1,10 @@
 <h2>Bar Chart</h2>
+<div>
+  <label for="yearControl">Select a year:</label>
+  <select [formControl]="yearControl" (change)="changeYear()">
+    <option value="0"> Select a year</option>
+      <option *ngFor="let year of (years$ | async)" [ngValue]="year">{{year}}</option>
+  </select>
+</div>
 <figure id="bar"></figure>
 

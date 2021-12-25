@@ -1,8 +1,12 @@
+import { IListResponseApi } from './../interface/IListResponseApi';
 import { IGraphData } from './../interface/IGraphData';
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
 import * as d3 from 'd3';
-import { BehaviorSubject, of, combineLatest, merge, zip } from 'rxjs';
+import { BehaviorSubject, of, combineLatest, merge, zip, Subject } from 'rxjs';
 import { FormControl } from '@angular/forms';
+import { GraphDataServiceService } from '../services/graph-data-service.service';
+import { takeUntil, map, take } from 'rxjs/operators';
+import { GraphPropertyEnum } from '../enums/graph-property-enum';
 
 
 @Component({
@@ -11,58 +15,39 @@ import { FormControl } from '@angular/forms';
   styleUrls: ['./horizontal-bar-chart.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HorizontalBarChartComponent implements OnInit {
+export class HorizontalBarChartComponent implements OnInit, OnDestroy {
   public maxValue: number;
   public minValue: number;
-  public years$: BehaviorSubject<number[]> = new BehaviorSubject([]);
-  public yearControl: FormControl;
+  public years$: BehaviorSubject<string[]> = new BehaviorSubject([]);
+  public yearControl: FormControl = new FormControl('') ;
   private readonly rowData: IGraphData[] = [];
+  private clearSubs$ = new Subject();
+
+
+  constructor(private graphDataServiceService: GraphDataServiceService){}
 
   public ngOnInit(): void {
-    this.readFromCSVData();
+    this.graphDataServiceService.getAllYear()
+    .pipe(take(1), map( x => x.data), takeUntil(this.clearSubs$))
+    .subscribe((result: string[]) => {
+      this.years$.next(result);
+      this.yearControl = new FormControl(result[0]);
+      this.changeYear();
+    });
+  }
+
+  public ngOnDestroy(): void {
+    this.clearSubs$.next();
+    this.clearSubs$.complete();
   }
 
   public changeYear(): void{
-    const filteredRows = this.rowData.filter( x => x.year === this.yearControl.value);
-    this.BarChart(this.getFormattedData(filteredRows), 'renewables', 'state');
-  }
-
-  private readFromCSVData(): void {
-    d3.csv('../../assets/interactive_data.csv').then((data) => {
-      data.forEach((x): number =>
-        this.rowData.push({
-          year: new Date(x.date).getFullYear(),
-          state: x.state,
-          renewables: parseFloat(x.renewables),
-        })
-      );
-      const years = [...new Set(this.rowData.map(item => item.year))];
-      this.years$.next(years);
-      this.maxValue = Math.max(...years);
-      this.minValue = Math.max(...years);
-      this.yearControl = new FormControl(this.maxValue);
-      this.changeYear();
+    this.graphDataServiceService.getDataByYear(this.yearControl.value)
+    .pipe(take(1), map( x => x.data), takeUntil(this.clearSubs$))
+    .subscribe((result: IGraphData[]) => {
+      this.BarChart(result, GraphPropertyEnum.Renewables, GraphPropertyEnum.State);
     });
-
   }
-
-  private getFormattedData(data: IGraphData[]): IGraphData[]{
-    const formattedResult = [];
-    data.reduce((res, value) => {
-        if (!res[value.state]) {
-          res[value.state] = {
-            renewables: 0,
-            state: value.state,
-          };
-          formattedResult.push(res[value.state]);
-        }
-        res[value.state].renewables += value.renewables;
-        return res;
-      }, {});
-    return formattedResult;
-
-  }
-
 
   private BarChart(data: IGraphData[], XProp: string, YProp: string): SVGSVGElement {
     const X = d3.map(data, (d) => d[XProp]);
@@ -125,7 +110,6 @@ export class HorizontalBarChartComponent implements OnInit {
       .attr('height', height)
       .attr('viewBox', [0, 0, width, height])
       .attr('style', 'max-width: 100%; height: auto; height: intrinsic;');
-
     svg
       .append('g')
       .attr('transform', `translate(0,${marginTop})`)
@@ -145,7 +129,7 @@ export class HorizontalBarChartComponent implements OnInit {
           .attr('y', -22)
           .attr('fill', 'currentColor')
           .attr('text-anchor', 'end')
-          .text('Sum(Renewables)')
+          .text('Renewables(%)')
       );
 
     svg
@@ -186,3 +170,5 @@ export class HorizontalBarChartComponent implements OnInit {
     return svg.node();
   }
 }
+
+

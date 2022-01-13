@@ -1,4 +1,5 @@
 import { environment } from './../../environments/environment';
+import { environment as prodEnvironment } from 'src/environments/environment.prod';
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -21,7 +22,8 @@ export class GraphDataServiceService {
   }
 
   private get(urlExtenstion: string): Observable<any> {
-      const url = urlExtenstion ?  `${environment.serviceUrl}${urlExtenstion}` : `${environment.serviceUrl}`;
+      const baseUrl = process.env.NODE_ENV === 'production' ? prodEnvironment.serviceUrl : environment.serviceUrl;
+      const url = urlExtenstion ?  `${baseUrl}${urlExtenstion}` : `${baseUrl}`;
       return this.http.get(url, {});
   }
 }

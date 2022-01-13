@@ -138,10 +138,10 @@ export class HorizontalBarChartComponent implements OnInit, OnDestroy {
       .selectAll('rect')
       .data(I)
       .join('rect')
-      .attr('x', xScale(0))
       .attr('y', (i) => yScale(Y[i]))
-      .attr('width', (i) => xScale(X[i]) - xScale(0))
-      .attr('height', yScale.bandwidth());
+      .attr('height', yScale.bandwidth())
+      .attr('x', xScale(0)).transition().duration(1500)
+      .attr('width', (i) => xScale(X[i]) - xScale(0));
 
     svg
       .append('g')

@@ -59,7 +59,7 @@ export class HorizontalBarChartComponent implements OnInit, OnDestroy {
     let height: any;
 
     const marginTop = 30; // the top margin, in pixels
-    const marginRight = 0; // the right margin, in pixels
+    const marginRight = 30; // the right margin, in pixels
     const marginBottom = 10; // the bottom margin, in pixels
     const marginLeft = 30; // the left margin, in pixels
     const width = 640; // the outer width of the chart, in pixels
@@ -72,7 +72,7 @@ export class HorizontalBarChartComponent implements OnInit, OnDestroy {
     const titleAltColor = 'currentColor';
     const xFormat = undefined;
 
-    if (xDomain === undefined) { xDomain = [0, d3.max(X)]; }
+    if (xDomain === undefined) { xDomain = [0, 100]; }
     if (yDomain === undefined) { yDomain = Y; }
     yDomain = new d3.InternSet(yDomain);
 

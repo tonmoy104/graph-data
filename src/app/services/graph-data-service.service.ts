@@ -21,7 +21,8 @@ export class GraphDataServiceService {
   }
 
   private get(urlExtenstion: string): Observable<any> {
-      const url = urlExtenstion ?  `${environment.serviceUrl}${urlExtenstion}` : `${environment.serviceUrl}`;
+      const baseUrl = environment.serviceUrl;
+      const url = urlExtenstion ?  `${baseUrl}${urlExtenstion}` : `${baseUrl}`;
       return this.http.get(url, {});
   }
 }
